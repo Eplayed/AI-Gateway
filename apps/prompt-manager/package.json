@@ -1,0 +1,29 @@
+{
+  "name": "prompt-manager",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch & nodemon --watch dist --exec node dist/index.js",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-gateway/core": "workspace:*",
+    "@ai-gateway/infrastructure": "workspace:*",
+    "@ai-gateway/logger": "workspace:*",
+    "@hono/node-server": "^1.14.1",
+    "hono": "^4.6.14",
+    "handlebars": "^4.7.8",
+    "zod": "^3.24.1",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "nodemon": "^3.1.9",
+    "typescript": "^5.7.2"
+  }
+}

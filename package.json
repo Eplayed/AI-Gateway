@@ -1,0 +1,57 @@
+{
+  "name": "ai-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Gateway - Multi-modal AI Agent Platform with DashScope Integration",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "infrastructure"
+  ],
+  "scripts": {
+    "clean": "pnpm -r --parallel exec rm -rf node_modules dist",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "type-check": "pnpm -r type-check",
+    "build": "pnpm -r --filter='./apps/**' build && pnpm --filter infrastructure build",
+    "dev:gateway": "pnpm --filter api-gateway dev",
+    "dev:orchestrator": "pnpm --filter agent-orchestrator dev",
+    "dev:prompt-manager": "pnpm --filter prompt-manager dev",
+    "test": "pnpm -r test",
+    "test:unit": "pnpm -r test:unit",
+    "test:integration": "pnpm -r test:integration",
+    "db:generate": "pnpm --filter infrastructure prisma:generate",
+    "db:push": "pnpm --filter infrastructure prisma:push",
+    "db:migrate": "pnpm --filter infrastructure prisma:migrate",
+    "db:studio": "pnpm --filter infrastructure prisma:studio",
+    "db:seed": "pnpm --filter infrastructure prisma:seed",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yaml,yml}": [
+      "prettier --write"
+    ]
+  },
+  "author": "AI Gateway Team",
+  "license": "MIT"
+}

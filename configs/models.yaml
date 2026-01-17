@@ -1,0 +1,91 @@
+# DashScope 模型配置
+models:
+  # 文本模型
+  qwen-turbo:
+    provider: dashscope
+    type: text
+    capabilities:
+      - text_generation
+      - chat_completion
+      - function_calling
+      - streaming
+    pricing:
+      inputPricePer1kTokens: 0.0008
+      outputPricePer1kTokens: 0.0008
+      currency: CNY
+    rateLimit:
+      requestsPerMinute: 300
+      tokensPerMinute: 120000
+    config:
+      maxTokens: 2000
+      temperature: 0.7
+      topP: 0.9
+      frequencyPenalty: 0
+      presencePenalty: 0
+
+  qwen-plus:
+    provider: dashscope
+    type: text
+    capabilities:
+      - text_generation
+      - chat_completion
+      - function_calling
+      - streaming
+    pricing:
+      inputPricePer1kTokens: 0.004
+      outputPricePer1kTokens: 0.006
+      currency: CNY
+    rateLimit:
+      requestsPerMinute: 100
+      tokensPerMinute: 100000
+    config:
+      maxTokens: 6000
+      temperature: 0.7
+      topP: 0.9
+      frequencyPenalty: 0
+      presencePenalty: 0
+
+  qwen-max:
+    provider: dashscope
+    type: text
+    capabilities:
+      - text_generation
+      - chat_completion
+      - function_calling
+      - streaming
+    pricing:
+      inputPricePer1kTokens: 0.02
+      outputPricePer1kTokens: 0.06
+      currency: CNY
+    rateLimit:
+      requestsPerMinute: 50
+      tokensPerMinute: 50000
+    config:
+      maxTokens: 8000
+      temperature: 0.7
+      topP: 0.9
+      frequencyPenalty: 0
+      presencePenalty: 0
+
+  # 多模态模型
+  qwen-vl-plus:
+    provider: dashscope
+    type: multimodal
+    capabilities:
+      - text_generation
+      - chat_completion
+      - image_analysis
+      - streaming
+    pricing:
+      inputPricePer1kTokens: 0.008
+      outputPricePer1kTokens: 0.008
+      currency: CNY
+    rateLimit:
+      requestsPerMinute: 50
+      tokensPerMinute: 80000
+    config:
+      maxTokens: 4000
+      temperature: 0.7
+      topP: 0.9
+      frequencyPenalty: 0
+      presencePenalty: 0

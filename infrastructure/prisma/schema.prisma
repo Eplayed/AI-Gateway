@@ -1,0 +1,318 @@
+// AI Gateway Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== API Key ====================
+model ApiKey {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  userId      String?  // 关联的用户 ID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tokenUsages      TokenUsage[]
+  costControlPolicies CostControlPolicy[]
+  agentInvocations AgentInvocation[]
+
+  @@index([key])
+  @@index([userId])
+}
+
+// ==================== Prompt ====================
+model Prompt {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  template    String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?
+  tags        String[]  // 存储 tag 数组
+
+  // Relations
+  versions     PromptVersion[]
+  promptUsages PromptUsage[]
+  workflowNodes WorkflowNode[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model PromptVersion {
+  id          String   @id @default(cuid())
+  promptId    String
+  version     Int
+  template    String
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  createdBy   String?
+  changeNote  String?
+
+  // Relations
+  prompt      Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  promptUsages PromptUsage[]
+
+  @@unique([promptId, version])
+  @@index([promptId])
+}
+
+model PromptUsage {
+  id          String        @id @default(cuid())
+  promptId    String
+  version     Int
+  usageCount  Int           @default(0)
+  totalTokens Int           @default(0)
+  totalCost   Float         @default(0)
+  lastUsedAt  DateTime      @default(now())
+  avgLatencyMs Float        @default(0)
+
+  // Relations
+  prompt      Prompt        @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  promptVersion PromptVersion @relation(fields: [promptId, version], references: [promptId, version], onDelete: Cascade)
+
+  @@unique([promptId, version])
+}
+
+// ==================== AB Testing ====================
+model ABTest {
+  id          String   @id @default(cuid())
+  promptId    String
+  name        String
+  description String?
+  versions    Int[]    // 版本号列表
+  trafficAllocation Float[] // 流量分配百分比，总和应为 100
+  status      String   // draft, active, paused, completed
+  startDate   DateTime
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([promptId])
+  @@index([status])
+}
+
+// ==================== Agent ====================
+model Agent {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   // idle, busy, offline, error
+  capabilities Json     // AgentCapability[] 存储为 JSON
+  config      Json     // AgentConfig 存储为 JSON
+  metadata    Json?    // Record<string, unknown>
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  agentInvocations AgentInvocation[]
+  workflowNodes WorkflowNode[]
+
+  @@index([status])
+}
+
+// ==================== Agent Invocation ====================
+model AgentInvocation {
+  id          String   @id @default(cuid())
+  agentId     String
+  apiKeyId    String?
+  input       Json
+  output      Json?
+  success     Boolean
+  error       String?
+  tokensUsed  Int?
+  latencyMs   Int
+  createdAt   DateTime @default(now())
+
+  // Relations
+  agent  Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  @@index([agentId])
+  @@index([createdAt])
+}
+
+// ==================== Workflow ====================
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   // draft, active, paused, archived
+  config      Json     // WorkflowConfig 存储为 JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  nodes       WorkflowNode[]
+  edges       WorkflowEdge[]
+  executions  WorkflowExecution[]
+
+  @@index([status])
+}
+
+model WorkflowNode {
+  id          String   @id @default(cuid())
+  workflowId  String
+  type        String   // agent, prompt, condition, merge
+  agentId     String?
+  promptId    String?
+  config      Json
+  positionX   Int
+  positionY   Int
+  createdAt   DateTime @default(now())
+
+  // Relations
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  agent       Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  prompt      Prompt?  @relation(fields: [promptId], references: [id], onDelete: SetNull)
+
+  @@index([workflowId])
+}
+
+model WorkflowEdge {
+  id          String   @id @default(cuid())
+  workflowId  String
+  source      String   // source node id
+  target      String   // target node id
+  condition   Json?    // EdgeCondition 存储为 JSON
+  createdAt   DateTime @default(now())
+
+  // Relations
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+}
+
+model WorkflowExecution {
+  id          String   @id @default(cuid())
+  workflowId  String
+  status      String   // pending, running, completed, failed, cancelled
+  input       Json
+  finalOutput Json?
+  errors      Json?    // ExecutionError[] 存储为 JSON
+  nodeResults Json?     // Map<string, unknown> 存储为 JSON
+  startTime   DateTime @default(now())
+  endTime     DateTime?
+
+  // Relations
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([startTime])
+}
+
+// ==================== Model ====================
+model Model {
+  id          String   @id @default(cuid())
+  modelId     String   @unique // DashScope 上的模型 ID，如 qwen-turbo
+  name        String
+  provider    String   // dashscope, openai, anthropic
+  type        String   // text, multimodal, image, audio
+  capabilities Json    // ModelCapability[] 存储为 JSON
+  pricing     Json     // ModelPricing 存储为 JSON
+  rateLimit   Json?    // RateLimit 存储为 JSON
+  config      Json     // ModelConfig 存储为 JSON
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  modelRoutes ModelRoute[]
+  tokenUsages TokenUsage[]
+
+  @@index([provider])
+  @@index([type])
+  @@index([isActive])
+}
+
+// ==================== Model Route ====================
+model ModelRoute {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  strategy        String   // cost_first, latency_first, quality_first, hybrid
+  rules           Json     // RoutingRule[] 存储为 JSON
+  defaultModelId  String
+  fallbackModelId String?
+  isActive        Boolean  @default(true)
+  priority        Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  defaultModel    Model    @relation("DefaultModel", fields: [defaultModelId], references: [id], onDelete: Restrict)
+  fallbackModel   Model?   @relation("FallbackModel", fields: [fallbackModelId], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
+  @@index([priority])
+}
+
+// ==================== Token Usage ====================
+model TokenUsage {
+  id                String   @id @default(cuid())
+  apiKeyId          String
+  modelId           String
+  promptTokens      Int
+  completionTokens  Int
+  totalTokens       Int
+  inputCost         Float
+  outputCost        Float
+  totalCost         Float
+  requestType       String   // text_generation, chat, image_analysis, speech_to_text, text_to_speech
+  metadata          Json?
+  timestamp         DateTime @default(now())
+
+  // Relations
+  apiKey            ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  model             Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([modelId])
+  @@index([timestamp])
+}
+
+// ==================== Cost Control ====================
+model CostControlPolicy {
+  id                    String   @id @default(cuid())
+  apiKeyId              String   @unique
+  dailyBudget           Float
+  currentDailyUsage     Float    @default(0)
+  dailyUsageResetDate   DateTime @default(now()) // 每日重置日期
+  monthlyBudget         Float
+  currentMonthlyUsage   Float    @default(0)
+  monthlyUsageResetDate DateTime @default(now()) // 每月重置日期
+  alertThreshold        Float    @default(0.8)
+  blockWhenExceeded     Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  apiKey                ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+}
+
+model CostAlert {
+  id          String   @id @default(cuid())
+  policyId    String
+  threshold   Float
+  currentUsage Float
+  budget      Float
+  alertType   String   // warning, critical, exceeded
+  timestamp   DateTime @default(now())
+
+  @@index([policyId])
+  @@index([timestamp])
+}

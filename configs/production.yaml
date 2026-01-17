@@ -1,0 +1,60 @@
+# 生产环境配置
+app:
+  name: ai-gateway
+  environment: production
+  port: 3000
+
+# DashScope 配置
+dashscope:
+  apiKey: ${DASHSCOPE_API_KEY}
+  endpoint: https://dashscope.aliyuncs.com
+  region: cn-beijing
+
+# 数据库配置
+database:
+  host: ${DATABASE_HOST}
+  port: ${DATABASE_PORT}
+  name: ${DATABASE_NAME}
+  user: ${DATABASE_USER}
+  password: ${DATABASE_PASSWORD}
+  ssl: true
+  pool:
+    min: 5
+    max: 20
+
+# Redis 配置
+redis:
+  host: ${REDIS_HOST}
+  port: ${REDIS_PORT}
+  password: ${REDIS_PASSWORD}
+  db: 0
+  keyPrefix: ai-gateway:
+
+# RabbitMQ 配置
+rabbitmq:
+  host: ${RABBITMQ_HOST}
+  port: ${RABBITMQ_PORT}
+  username: ${RABBITMQ_USER}
+  password: ${RABBITMQ_PASSWORD}
+
+# 日志配置
+logger:
+  level: info
+  format: json
+
+# 限流配置
+rateLimit:
+  windowMs: 60000
+  maxRequestsPerWindow: 1000
+
+# 成本控制
+costControl:
+  enabled: true
+  defaultDailyBudget: 100.0
+  defaultMonthlyBudget: 1000.0
+  alertThreshold: 0.8
+
+# 模型路由默认策略
+router:
+  defaultStrategy: hybrid
+  fallbackModel: qwen-turbo

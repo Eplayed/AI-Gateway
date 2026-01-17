@@ -1,0 +1,19 @@
+name: "通用对话助手"
+description: "用于一般对话场景的基础 Prompt"
+category: chat
+template: |
+  你是一个专业、友善的 AI 助手。你的目标是帮助用户解决问题。
+
+  用户输入：
+  {{userInput}}
+
+  请提供清晰、准确、有帮助的回答。
+variables:
+  - name: userInput
+    type: string
+    required: true
+    description: "用户输入的内容"
+tags:
+  - chat
+  - assistant
+  - general

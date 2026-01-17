@@ -1,0 +1,1146 @@
+openapi: 3.0.3
+info:
+  title: AI Gateway API
+  description: Multi-modal AI Agent Platform with DashScope Integration
+  version: 0.1.0
+  contact:
+    name: AI Gateway Team
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.ai-gateway.com/api/v1
+    description: Production server
+
+paths:
+  /inference/chat:
+    post:
+      summary: Chat with AI model
+      description: Send a chat completion request to the AI model
+      tags:
+        - Inference
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - messages
+              properties:
+                model:
+                  type: string
+                  default: qwen-turbo
+                  description: Model ID to use
+                messages:
+                  type: array
+                  description: Array of message objects
+                  items:
+                    $ref: '#/components/schemas/ChatMessage'
+                temperature:
+                  type: number
+                  minimum: 0
+                  maximum: 2
+                  description: Sampling temperature
+                topP:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  description: Nucleus sampling parameter
+                maxTokens:
+                  type: number
+                  positive: true
+                  description: Maximum tokens to generate
+      responses:
+        '200':
+          description: Chat completion response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /inference/text:
+    post:
+      summary: Text generation
+      description: Generate text completion from a prompt
+      tags:
+        - Inference
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - prompt
+              properties:
+                model:
+                  type: string
+                  default: qwen-turbo
+                prompt:
+                  type: string
+                  description: Input prompt for text generation
+                temperature:
+                  type: number
+                  minimum: 0
+                  maximum: 2
+                topP:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                maxTokens:
+                  type: number
+                  positive: true
+      responses:
+        '200':
+          description: Text generation response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TextGenerationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /inference/image-analysis:
+    post:
+      summary: Image analysis
+      description: Analyze an image and extract information
+      tags:
+        - Inference
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - image
+                - prompt
+              properties:
+                model:
+                  type: string
+                  default: qwen-vl-plus
+                image:
+                  $ref: '#/components/schemas/ImageInput'
+                prompt:
+                  type: string
+                  description: Analysis prompt
+                temperature:
+                  type: number
+                  minimum: 0
+                  maximum: 2
+                topP:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+      responses:
+        '200':
+          description: Image analysis response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageAnalysisResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /inference/estimate-cost:
+    post:
+      summary: Estimate cost
+      description: Estimate token usage and cost for a request
+      tags:
+        - Inference
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - input
+              properties:
+                input:
+                  type: string
+                  description: Input text to estimate
+                modelId:
+                  type: string
+                  default: qwen-turbo
+      responses:
+        '200':
+          description: Cost estimation response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostEstimateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /usage/token:
+    get:
+      summary: Get token usage statistics
+      description: Retrieve token usage history for the authenticated API key
+      tags:
+        - Usage
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Start date for statistics (default: 30 days ago)
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: End date for statistics (default: now)
+      responses:
+        '200':
+          description: Token usage response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenUsageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /usage/cost:
+    get:
+      summary: Get cost statistics
+      description: Retrieve cost statistics for the authenticated API key
+      tags:
+        - Usage
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Cost statistics response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /prompts:
+    post:
+      summary: Create prompt
+      description: Create a new prompt template
+      tags:
+        - Prompts
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromptRequest'
+      responses:
+        '201':
+          description: Prompt created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Prompt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      summary: List prompts
+      description: Retrieve a list of prompts with optional filters
+      tags:
+        - Prompts
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: tags
+          in: query
+          schema:
+            type: string
+            description: Comma-separated list of tags
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of prompts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Prompt'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /prompts/{id}:
+    get:
+      summary: Get prompt by ID
+      description: Retrieve a specific prompt template
+      tags:
+        - Prompts
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          schema:
+            type: integer
+          description: Specific version to retrieve
+      responses:
+        '200':
+          description: Prompt details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Prompt'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Update prompt
+      description: Update an existing prompt
+      tags:
+        - Prompts
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: createVersion
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Whether to create a new version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                template:
+                  type: string
+                isActive:
+                  type: boolean
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Prompt updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Prompt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Delete prompt
+      description: Delete a prompt template
+      tags:
+        - Prompts
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Prompt deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /prompts/{id}/versions:
+    get:
+      summary: Get prompt versions
+      description: Retrieve all versions of a prompt
+      tags:
+        - Prompts
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of prompt versions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PromptVersion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /prompts/{id}/render:
+    post:
+      summary: Render prompt
+      description: Render a prompt template with variables
+      tags:
+        - Prompts
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - variables
+              properties:
+                variables:
+                  type: object
+                  description: Variable values to substitute in template
+                version:
+                  type: integer
+                  description: Specific version to render
+      responses:
+        '200':
+          description: Rendered prompt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/RenderedPrompt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /agents:
+    post:
+      summary: Create agent
+      description: Register a new AI agent
+      tags:
+        - Agents
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAgentRequest'
+      responses:
+        '201':
+          description: Agent created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Agent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      summary: List agents
+      description: Retrieve all registered agents
+      tags:
+        - Agents
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [idle, busy, offline, error]
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Agent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /agents/{agentId}:
+    get:
+      summary: Get agent by ID
+      description: Retrieve a specific agent
+      tags:
+        - Agents
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Agent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Delete agent
+      description: Unregister an agent
+      tags:
+        - Agents
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /agents/{agentId}/invoke:
+    post:
+      summary: Invoke agent
+      description: Execute an agent with input
+      tags:
+        - Agents
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - input
+              properties:
+                input:
+                  type: object
+                  description: Input data for the agent
+                context:
+                  type: object
+                  description: Additional context for execution
+      responses:
+        '200':
+          description: Agent execution result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AgentInvocationResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: sk-xxx
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+        content:
+          type: string
+
+    ChatResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            message:
+              $ref: '#/components/schemas/ChatMessage'
+            model:
+              type: string
+            tokens:
+              $ref: '#/components/schemas/TokenCount'
+            finishReason:
+              type: string
+            latencyMs:
+              type: integer
+
+    TextGenerationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            content:
+              type: string
+            model:
+              type: string
+            tokens:
+              $ref: '#/components/schemas/TokenCount'
+            finishReason:
+              type: string
+            latencyMs:
+              type: integer
+
+    ImageInput:
+      type: object
+      required:
+        - type
+        - data
+      properties:
+        type:
+          type: string
+          enum: [url, base64]
+        data:
+          type: string
+
+    ImageAnalysisResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            content:
+              type: string
+            model:
+              type: string
+            tokens:
+              $ref: '#/components/schemas/TokenCount'
+            latencyMs:
+              type: integer
+
+    CostEstimateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            inputTokens:
+              type: integer
+            estimatedOutputTokens:
+              type: integer
+            estimatedCost:
+              type: number
+            currency:
+              type: string
+            confidence:
+              type: number
+              minimum: 0
+              maximum: 1
+
+    TokenCount:
+      type: object
+      properties:
+        promptTokens:
+          type: integer
+        completionTokens:
+          type: integer
+        totalTokens:
+          type: integer
+
+    TokenUsageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            usages:
+              type: array
+              items:
+                $ref: '#/components/schemas/TokenUsage'
+            stats:
+              type: object
+              properties:
+                totalTokens:
+                  type: integer
+                totalCost:
+                  type: number
+                requestCount:
+                  type: integer
+                avgCostPerRequest:
+                  type: number
+
+    CostStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            totalTokens:
+              type: integer
+            totalCost:
+              type: number
+            requestCount:
+              type: integer
+            avgCostPerRequest:
+              type: number
+            currency:
+              type: string
+
+    Prompt:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [chat, completion, system_instruction, code_generation, data_extraction]
+        template:
+          type: string
+        version:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: integer
+          format: int64
+        updatedAt:
+          type: integer
+          format: int64
+        tags:
+          type: array
+          items:
+            type: string
+        variables:
+          type: array
+          items:
+            type: object
+
+    PromptVersion:
+      type: object
+      properties:
+        id:
+          type: string
+        promptId:
+          type: string
+        version:
+          type: integer
+        template:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: integer
+          format: int64
+        createdBy:
+          type: string
+        changeNote:
+          type: string
+
+    RenderedPrompt:
+      type: object
+      properties:
+        template:
+          type: string
+        variables:
+          type: object
+        renderedText:
+          type: string
+        version:
+          type: integer
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [idle, busy, offline, error]
+        capabilities:
+          type: array
+          items:
+            type: object
+        config:
+          type: object
+        metadata:
+          type: object
+        createdAt:
+          type: integer
+          format: int64
+        updatedAt:
+          type: integer
+          format: int64
+
+    AgentInvocationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        output:
+          type: object
+        error:
+          type: object
+        tokensUsed:
+          type: integer
+        latencyMs:
+          type: integer
+        agentId:
+          type: string
+
+    CreatePromptRequest:
+      type: object
+      required:
+        - name
+        - category
+        - template
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [chat, completion, system_instruction, code_generation, data_extraction]
+        template:
+          type: string
+        isActive:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+
+    CreateAgentRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [idle, busy, offline, error]
+          default: idle
+        capabilities:
+          type: array
+          items:
+            type: object
+        config:
+          type: object
+        metadata:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Invalid or inactive API key
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Resource not found
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Rate limit exceeded
+              retryAfter:
+                type: integer
+                description: Seconds to wait before retry
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string

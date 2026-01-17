@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Git commit message 格式校验
+# 格式：type(scope): subject
+# type: feat, fix, docs, style, refactor, test, chore
+
+commit_msg=$(cat "$1")
+pattern="^(feat|fix|docs|style|refactor|test|chore|perf|ci|build)(\(.+\))?: .{1,}"
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+  echo "❌ Commit message format error!"
+  echo "Expected format: type(scope): subject"
+  echo "Examples:"
+  echo "  feat(gateway): add model routing strategy"
+  echo "  fix(prompt-manager): resolve memory leak"
+  echo "  docs: update API documentation"
+  exit 1
+fi
